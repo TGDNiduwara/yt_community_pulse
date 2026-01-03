@@ -1,0 +1,23 @@
+# --- Security (CRITICAL) ---
+# Never commit your API keys!
+.env
+
+# --- Python & Environment ---
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# --- Data & Database ---
+# We don't want to commit the actual comments or the database
+data/*.db
+data/*.csv
+data/*.json
+data/*.parquet
+
+# --- IDE & OS ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
