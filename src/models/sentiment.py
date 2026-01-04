@@ -9,7 +9,7 @@ sys.path.append(str(project_root))
 
 from src.db.manager import DBManager, Comment
 
-def analyze_sentiment():
+def analyze_sentiment(batch_size=32):
     print("--- 🧠 Loading AI Model (this may take a moment) ---")
     
     # 1. Load the Pipeline
@@ -36,26 +36,32 @@ def analyze_sentiment():
         if not comments:
             return
 
-        # 3. Batch Processing
-        # processing one by one is fine for < 1000 comments
-        for comment in tqdm(comments, desc="Analyzing"):
-            # The model fails on empty strings, so skip them
+        # 3. Batch Processing for efficiency (10x faster than one-by-one)
+        texts_to_analyze = []
+        comment_objects = []
+        
+        for comment in comments:
+            # The model fails on empty strings, so mark them as NEUTRAL
             if not comment.cleaned_text.strip():
                 comment.sentiment_label = "NEUTRAL"
                 comment.sentiment_score = 0
-                continue
+            else:
+                texts_to_analyze.append(comment.cleaned_text[:512])
+                comment_objects.append(comment)
+        
+        # Process in batches if we have comments to analyze
+        if texts_to_analyze:
+            for i in tqdm(range(0, len(texts_to_analyze), batch_size), desc="Analyzing batches"):
+                batch_texts = texts_to_analyze[i:i + batch_size]
+                batch_comments = comment_objects[i:i + batch_size]
                 
-            # Run Inference
-            # Returns a list like: [{'label': 'POSITIVE', 'score': 0.99}]
-            result = sentiment_pipeline(comment.cleaned_text[:512]) # Truncate to 512 tokens max
-            
-            label = result[0]['label']
-            score = result[0]['score']
-            
-            # Update Record
-            comment.sentiment_label = label
-            # Convert float (0.98) to Integer (98) for your DB Schema
-            comment.sentiment_score = int(score * 100)
+                # Run batch inference (much faster than one-by-one)
+                results = sentiment_pipeline(batch_texts)
+                
+                # Update records with batch results
+                for comment, result in zip(batch_comments, results):
+                    comment.sentiment_label = result['label']
+                    comment.sentiment_score = int(result['score'] * 100)
 
         session.commit()
         print(f"✅ AI Analysis complete! Database updated.")
