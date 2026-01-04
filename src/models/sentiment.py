@@ -41,7 +41,7 @@ def analyze_sentiment(batch_size=32):
         comment_objects = []
         
         for comment in comments:
-            # The model fails on empty strings, so skip them
+            # The model fails on empty strings, so mark them as NEUTRAL
             if not comment.cleaned_text.strip():
                 comment.sentiment_label = "NEUTRAL"
                 comment.sentiment_score = 0
@@ -49,18 +49,19 @@ def analyze_sentiment(batch_size=32):
                 texts_to_analyze.append(comment.cleaned_text[:512])
                 comment_objects.append(comment)
         
-        # Process in batches
-        for i in tqdm(range(0, len(texts_to_analyze), batch_size), desc="Analyzing batches"):
-            batch_texts = texts_to_analyze[i:i + batch_size]
-            batch_comments = comment_objects[i:i + batch_size]
-            
-            # Run batch inference (much faster than one-by-one)
-            results = sentiment_pipeline(batch_texts)
-            
-            # Update records with batch results
-            for comment, result in zip(batch_comments, results):
-                comment.sentiment_label = result['label']
-                comment.sentiment_score = int(result['score'] * 100)
+        # Process in batches if we have comments to analyze
+        if texts_to_analyze:
+            for i in tqdm(range(0, len(texts_to_analyze), batch_size), desc="Analyzing batches"):
+                batch_texts = texts_to_analyze[i:i + batch_size]
+                batch_comments = comment_objects[i:i + batch_size]
+                
+                # Run batch inference (much faster than one-by-one)
+                results = sentiment_pipeline(batch_texts)
+                
+                # Update records with batch results
+                for comment, result in zip(batch_comments, results):
+                    comment.sentiment_label = result['label']
+                    comment.sentiment_score = int(result['score'] * 100)
 
         session.commit()
         print(f"✅ AI Analysis complete! Database updated.")

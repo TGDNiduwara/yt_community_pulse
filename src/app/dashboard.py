@@ -68,6 +68,7 @@ app.layout = html.Div([
     Input('refresh-button', 'n_clicks')
 )
 def refresh_data(n_clicks):
+    # Load data on initial page load and when refresh is clicked
     df = load_data()
     return df.to_dict('records')
 

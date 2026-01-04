@@ -10,6 +10,9 @@ sys.path.append(str(project_root))
 
 from src.db.manager import DBManager, Comment
 
+# Configuration constants
+DEFAULT_MAX_FEATURES = 1000  # Limit features for faster processing on large datasets
+
 def extract_topics(n_clusters=5):
     print(f"--- 🧩 Starting Topic Clustering (k={n_clusters}) ---")
     
@@ -35,7 +38,7 @@ def extract_topics(n_clusters=5):
         # min_df=2: Ignore words appearing in less than 2 documents (typos/noise)
         # stop_words='english': Remove "and", "is", "but"
         # max_features: Limit features for faster processing on large datasets
-        max_features = min(1000, len(corpus))  # Optimize for large datasets
+        max_features = min(DEFAULT_MAX_FEATURES, len(corpus))
         vectorizer = TfidfVectorizer(
             max_df=0.9, 
             min_df=2, 
