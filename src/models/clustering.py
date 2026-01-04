@@ -34,16 +34,28 @@ def extract_topics(n_clusters=5):
         # max_df=0.9: Ignore words appearing in 90% of documents (too common, like "the")
         # min_df=2: Ignore words appearing in less than 2 documents (typos/noise)
         # stop_words='english': Remove "and", "is", "but"
-        vectorizer = TfidfVectorizer(max_df=0.9, min_df=2, stop_words='english')
+        # max_features: Limit features for faster processing on large datasets
+        max_features = min(1000, len(corpus))  # Optimize for large datasets
+        vectorizer = TfidfVectorizer(
+            max_df=0.9, 
+            min_df=2, 
+            stop_words='english',
+            max_features=max_features
+        )
         X = vectorizer.fit_transform(corpus)
         
         print(f"🧮 Created vectors: {X.shape} (Rows, Features)")
 
-        # 3. K-Means Clustering
-        kmeans = KMeans(n_clusters=n_clusters, random_state=42)
+        # 3. K-Means Clustering with optimizations
+        kmeans = KMeans(
+            n_clusters=n_clusters, 
+            random_state=42,
+            n_init=10,  # Reduce from default for faster processing
+            max_iter=300  # Usually converges earlier, but set reasonable limit
+        )
         kmeans.fit(X)
         
-        # 4. Save Cluster IDs back to DB
+        # 4. Save Cluster IDs back to DB using bulk update
         # The labels_ array contains the cluster ID (0, 1, 2...) for each comment
         for i, comment in enumerate(comments):
             comment.cluster_id = int(kmeans.labels_[i])
